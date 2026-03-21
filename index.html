@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="my">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Imposter Game Myanmar </title>
+    <style>
+        :root {
+            --neon-blue: #00f2ff;
+            --neon-red: #ff0055;
+            --bg-dark: #050507;
+            --glass: rgba(255, 255, 255, 0.05);
+        }
+
+        body {
+            font-family: 'Pyidaungsu', 'Segoe UI', sans-serif;
+            background-color: var(--bg-dark);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            background-image: radial-gradient(circle at 50% 50%, #1a1a2e 0%, #050507 100%);
+        }
+
+        .grid {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-image: linear-gradient(rgba(0, 242, 255, 0.05) 1px, transparent 1px),
+                              linear-gradient(90deg, rgba(0, 242, 255, 0.05) 1px, transparent 1px);
+            background-size: 40px 40px;
+            z-index: 0;
+        }
+
+        .container { position: relative; z-index: 10; width: 90%; max-width: 400px; }
+        .hidden { display: none !important; }
+
+        .setup-card {
+            background: rgba(15, 15, 20, 0.9);
+            backdrop-filter: blur(10px);
+            padding: 25px;
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            text-align: center;
+            box-shadow: 0 0 30px rgba(0, 210, 255, 0.1);
+        }
+
+        .setup-group { margin-bottom: 15px; text-align: left; }
+        label { display: block; font-size: 0.75rem; color: var(--neon-blue); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; }
+        
+        input, select {
+            background: #111;
+            border: 1px solid #333;
+            color: white;
+            padding: 14px;
+            border-radius: 12px;
+            width: 100%;
+            font-size: 1rem;
+            box-sizing: border-box;
+            outline: none;
+            transition: 0.3s;
+        }
+
+        input:focus { border-color: var(--neon-blue); }
+
+        .card-container { perspective: 1000px; width: 100%; height: 380px; margin: 20px 0; }
+        
+        .card {
+            width: 100%; height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.7s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .card.is-flipped { transform: rotateY(180deg); }
+
+        .card-face {
+            position: absolute;
+            width: 100%; height: 100%;
+            backface-visibility: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-radius: 28px;
+            background: linear-gradient(145deg, #121216, #0a0a0b);
+            border: 1px solid rgba(0, 242, 255, 0.3);
+            box-sizing: border-box;
+            padding: 20px;
+        }
+
+        .card-face-back { 
+            transform: rotateY(180deg); 
+            border-color: var(--neon-red);
+            background: linear-gradient(145deg, #1a0a0e, #0a0a0b);
+        }
+
+        .word-display { font-size: 2.2rem; font-weight: 800; text-align: center; }
+        .hint-box {
+            margin-top: 20px;
+            padding: 12px 20px;
+            background: rgba(255,255,255,0.03);
+            border-radius: 12px;
+            font-size: 0.9rem;
+            color: #ccc;
+            border-left: 3px solid var(--neon-blue);
+        }
+
+        .btn-main {
+            background: var(--neon-blue);
+            color: #000;
+            border: none;
+            border-radius: 12px;
+            padding: 16px;
+            font-weight: bold;
+            font-size: 1rem;
+            width: 100%;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0, 242, 255, 0.3);
+        }
+
+        #player-hud {
+            font-size: 1.1rem;
+            letter-spacing: 1px;
+            background: var(--glass);
+            padding: 8px 24px;
+            border-radius: 50px;
+            margin-bottom: 15px;
+            display: inline-block;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        #timer-bar {
+            width: 80%; height: 4px;
+            background: rgba(255,255,255,0.1);
+            position: absolute; bottom: 40px; border-radius: 2px;
+        }
+        #timer-fill {
+            height: 100%; background: var(--neon-red); width: 0%;
+            transition: width 4s linear; box-shadow: 0 0 10px var(--neon-red);
+        }
+
+        @keyframes pulse { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
+        .pulse { animation: pulse 2s infinite; }
+    </style>
+</head>
+<body>
+
+    <div class="grid"></div>
+
+    <div class="container">
+        <div id="setup" class="setup-card">
+            <h1 style="margin: 0 0 10px 0; font-size: 1.8rem; color: var(--neon-blue);">IMPOSTER GAME Myanmar</h1>
+            
+            
+            <div class="setup-group">
+                <label>ကဏ္ဍ ရွေးချယ်ပါ</label>
+                <select id="categorySelect">
+                    <option value="mix">အားလုံးရောနှောမည်</option>
+                    <option value="jobs">အလုပ်အကိုင် (Jobs)</option>
+                    <option value="places">မြန်မာ့နေရာများ (Places)</option>
+                    <option value="food">မြန်မာ့အစားအစာ (Food)</option>
+                    <option value="music">မြန်မာ့ဂီတ (Music)</option>
+                    <option value="people">ကျော်ကြားသူများ (People)</option>
+                    <option value="instruments">တူရိယာများ (Instruments)</option>
+                </select>
+            </div>
+
+            <div style="display: flex; gap: 15px;">
+                <div class="setup-group" style="flex: 1;">
+                    <label>လူဦးရေ</label>
+                    <input type="number" id="playerCount" value="4" min="3">
+                </div>
+                <div class="setup-group" style="flex: 1;">
+                    <label>လူယောင်ဆောင်</label>
+                    <input type="number" id="imposterCount" value="1" min="1">
+                </div>
+            </div>
+            
+            <button class="btn-main" style="margin-top: 10px;" onclick="startGame()">ဂိမ်းစတင်မည်</button>
+        </div>
+
+        <div id="game" class="hidden" style="text-align: center;">
+            <div id="player-hud" class="pulse" style="color: var(--neon-blue);">ကစားသမား ၁</div>
+            <div class="card-container" onclick="handleTouch()">
+                <div id="card" class="card">
+                    <div class="card-face">
+                        <div style="font-size: 3.5rem; margin-bottom: 15px;">👤</div>
+                        <p style="color: var(--neon-blue); font-weight: bold;">နှိပ်ပြီး စကားလုံးကိုကြည့်ပါ</p>
+                        <p style="font-size: 0.8rem; color: #555; margin-top: 10px;">(၄ စက္ကန့်သာ ပြပါမည်)</p>
+                    </div>
+                    <div class="card-face card-face-back">
+                        <div id="word-display" class="word-display">စကားလုံး</div>
+                        <div id="hint-display" class="hint-box">-</div>
+                        <div id="timer-bar"><div id="timer-fill"></div></div>
+                    </div>
+                </div>
+            </div>
+            <button id="next-btn" class="btn-main hidden" onclick="nextPlayer()">နောက်တစ်ယောက်သို့ ➔</button>
+        </div>
+    </div>
+
+<script>
+    const dataPool = {
+        jobs: {
+            name: "အလုပ်အကိုင်",
+            list: ["ဆရာဝန်", "အင်ဂျင်နီယာ", "စစ်သား", "ရဲ", "ကျောင်းဆရာ", "လယ်သမား", "ဈေးသည်", "မင်းသား/မင်းသမီး", "ဓာတ်ပုံဆရာ", "ရှေ့နေ", "စားဖိုမှူး", "ယာဉ်မောင်း"],
+            hints: ["နေ့စဉ်အသက်မွေးဝမ်းကျောင်း", "လူမှုပတ်ဝန်းကျင်အတွက် အရေးကြီးသူ", "လုပ်ငန်းခွင်တစ်ခု"]
+        },
+        places: { 
+            name: "မြန်မာ့နေရာများ",
+            list: ["ရွှေတိဂုံဘုရား", "ပုဂံ", "အင်းလေးကန်", "ကျိုက်ထီးရိုး", "ပြင်ဦးလွင်", "ငပလီ", "မန္တလေးနန်းတော်", "ပုပ္ပါးတောင်", "ဇွဲကပင်တောင်", "မြစ်ဆုံ", "ချောင်းသာ", "ငွေဆောင်"],
+            hints: ["နာမည်ကြီး ခရီးသွားနေရာ", "သမိုင်းဝင် အမွေအနှစ်", "မြန်မာပြည်၏ ဂုဏ်ဆောင်"]
+        },
+        food: {
+            name: "မြန်မာ့အစားအစာ",
+            list: ["မုန့်ဟင်းခါး", "အုန်းနို့ခေါက်ဆွဲ", "လက်ဖက်သုပ်", "ရှမ်းခေါက်ဆွဲ", "ငါးထမင်းနယ်", "မုန့်လင်မယား", "ဝက်သားတုတ်ထိုး", "အကြော်စုံ", "ဆီချက်ခေါက်ဆွဲ", "မြေအိုးမြီးရှည်"],
+            hints: ["မြန်မာ့ရိုးရာ အစားအစာ", "စားကောင်းသောက်ဖွယ်", "လူကြိုက်များသော စားစရာ"]
+        },
+        music: {
+            name: "မြန်မာ့ဂီတ",
+            list: ["ဓမ္မစကြာ", "မဟာဂီတ", "တေးသံသာ", "ဒိုးပတ်သံ", "ကာလပေါ်တေး", "ရွှေမန်းတင်မောင်", "မြို့မငြိမ်း", "စိုင်းစိုင်းခမ်းလှိုင်", "အုပ်စိုးခန့်", "ဖြူဖြူကျော်သိန်း"],
+            hints: ["ဂီတလောကနှင့် သက်ဆိုင်သူ/အရာ", "အနုပညာနယ်ပယ်"]
+        },
+        people: {
+            name: "ကျော်ကြားသူများ",
+            list: ["ဗိုလ်ချုပ်အောင်ဆန်း", "ဦးသန့်", "ဝင်းဦး", "နေတိုး", "စိုင်းစိုင်းခမ်းလှိုင်", "အောင်လအန်ဆန်း", "ထွန်းအိန္ဒြာဗိုလ်", "ဖွေးဖွေး", "လူမင်း", "ပြေတီဦး"],
+            hints: ["မြန်မာပြည်က လူသိများသူ", "အောင်မြင်ကျော်ကြားသူ"]
+        },
+        instruments: {
+            name: "မြန်မာ့တူရိယာများ",
+            list: ["ပတ္တလား", "ဆိုင်းဝိုင်း", "နှဲ", "စောင်းကောက်", "အိုးစည်", "ဒိုးပတ်", "ပုလွေ", "ဝါးလက်ခုပ်"],
+            hints: ["မြန်မာ့ရိုးရာ တူရိယာ", "ဂီတဖျော်ဖြေရေး ပစ္စည်း"]
+        }
+    };
+
+    let state = { players: [], current: 0, flipped: false, timer: null };
+
+    function startGame() {
+        const pCount = Math.max(3, parseInt(document.getElementById('playerCount').value));
+        const iCount = Math.max(1, parseInt(document.getElementById('imposterCount').value));
+        let catKey = document.getElementById('categorySelect').value;
+        
+        if (catKey === 'mix') {
+            const keys = Object.keys(dataPool);
+            catKey = keys[Math.floor(Math.random() * keys.length)];
+        }
+
+        const category = dataPool[catKey];
+        const secretWord = category.list[Math.floor(Math.random() * category.list.length)];
+
+        let deck = [];
+        // Normal Players
+        for (let i = 0; i < (pCount - iCount); i++) 
+            deck.push({ word: secretWord, hint: `ဂိမ်းစတင်ရန် အသင့်ပြင်ထားပါ။`, imp: false });
+        
+        // Imposters
+        for (let i = 0; i < iCount; i++) {
+            const randomHint = category.hints[Math.floor(Math.random() * category.hints.length)];
+            deck.push({ word: "IMPOSTER", hint: `အရိပ်အမြွက်: ${randomHint}`, imp: true });
+        }
+
+        state.players = deck.sort(() => Math.random() - 0.5);
+        state.current = 0;
+        document.getElementById('setup').classList.add('hidden');
+        document.getElementById('game').classList.remove('hidden');
+        updateScreen();
+    }
+
+    function updateScreen() {
+        state.flipped = false;
+        document.getElementById('card').classList.remove('is-flipped');
+        document.getElementById('next-btn').classList.add('hidden');
+        document.getElementById('player-hud').innerText = `ကစားသမား ${state.current + 1}`;
+        document.getElementById('timer-fill').style.width = '0%';
+        
+        const p = state.players[state.current];
+        document.getElementById('word-display').innerText = p.word;
+        document.getElementById('hint-display').innerText = p.hint;
+        
+        // Dynamic colors for back card
+        const backSide = document.querySelector('.card-face-back');
+        if (p.imp) {
+            document.getElementById('word-display').style.color = 'var(--neon-red)';
+            backSide.style.borderColor = 'var(--neon-red)';
+        } else {
+            document.getElementById('word-display').style.color = 'var(--neon-blue)';
+            backSide.style.borderColor = 'var(--neon-blue)';
+        }
+    }
+
+    function handleTouch() {
+        if (!state.flipped) { openCard(); }
+    }
+
+    function openCard() {
+        state.flipped = true;
+        document.getElementById('card').classList.add('is-flipped');
+        document.getElementById('timer-fill').style.width = '100%';
+        state.timer = setTimeout(closeCard, 4000);
+    }
+
+    function closeCard() {
+        clearTimeout(state.timer);
+        document.getElementById('card').classList.remove('is-flipped');
+        document.getElementById('next-btn').classList.remove('hidden');
+    }
+
+    function nextPlayer() {
+        state.current++;
+        if (state.current < state.players.length) { 
+            updateScreen(); 
+        } else {
+            document.getElementById('game').innerHTML = `
+                <div class="setup-card">
+                    <h1 style="color:var(--neon-red); margin-bottom: 10px;">ဂိမ်းစတင်ပါပြီ!</h1>
+                    <p style="margin-bottom:25px; color:#ccc; line-height: 1.6;">စကားလုံးကို တစ်ယောက်ချင်းစီ ရှင်းပြပါ။ <br>ပြီးလျှင် Imposter ကို ဝိုင်းဖမ်းကြပါ။</p>
+                    <button class="btn-main" onclick="location.reload()">အစမှ ပြန်ကစားမည်</button>
+                </div>
+            `;
+        }
+    }
+</script>
+</body>
+</html>
